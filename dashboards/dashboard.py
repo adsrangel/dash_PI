@@ -11,7 +11,7 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 # definindo aplicativo do flask
 app = Dash(__name__, title='Tráfego Urbano')                         
 
-df_2022 = pd.read_csv("/Users/danieladomingues/Documents/dash_PI/dashboards/assets/bd_transito_2022.csv", sep=",")
+df_2022 = pd.read_csv("./assets/bd_transito_2022.csv", sep=",")
 
 #Criar variaveis dia da semana para organizar Data Frame
 dias_semana_ordem = ['segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado', 'domingo']
@@ -203,14 +203,11 @@ figGraficoBarraComparacaoCongestionamentoMesRegiao.update_layout(
 
 # Agrupar por mês e região e calcular a soma do tamanho
 df_grouped = df_2022.groupby(['Mes', 'Regiao'], sort=False)['Tamanho'].sum().reset_index()
-df_grouped.head()
+initial_region = 'LESTE'
+
 # Criar o gráfico de barras
 figGraficoBarrasHoriCongestionamentoMes = go.Figure(data=[
-    go.Bar(name='LESTE', y=df_grouped[df_grouped['Regiao'] == 'LESTE']['Mes'], x=df_grouped[df_grouped['Regiao'] == 'LESTE']['Tamanho'], orientation='h', marker=dict(line=dict(width=0))),
-    go.Bar(name='CENTRO', y=df_grouped[df_grouped['Regiao'] == 'CENTRO']['Mes'], x=df_grouped[df_grouped['Regiao'] == 'CENTRO']['Tamanho'], orientation='h', marker=dict(line=dict(width=0))),
-    go.Bar(name='NORTE', y=df_grouped[df_grouped['Regiao'] == 'NORTE']['Mes'], x=df_grouped[df_grouped['Regiao'] == 'NORTE']['Tamanho'], orientation='h', marker=dict(line=dict(width=0))),
-    go.Bar(name='OESTE', y=df_grouped[df_grouped['Regiao'] == 'OESTE']['Mes'], x=df_grouped[df_grouped['Regiao'] == 'OESTE']['Tamanho'], orientation='h', marker=dict(line=dict(width=0))),
-    go.Bar(name='SUL', y=df_grouped[df_grouped['Regiao'] == 'SUL']['Mes'], x=df_grouped[df_grouped['Regiao'] == 'SUL']['Tamanho'], orientation='h', marker=dict(line=dict(width=0)))
+    go.Bar(name=initial_region, y=df_grouped[df_grouped['Regiao'] == initial_region]['Mes'], x=df_grouped[df_grouped['Regiao'] == initial_region]['Tamanho'], orientation='h'),
 ])
 
 # Atualizar o layout do gráfico
@@ -375,11 +372,51 @@ app.layout = html.Div([
             #     id='demo-dropdown',
             #     className='demo-dropdown'),
             html.H3(
-                children='Para otimizar a fluidez e melhorar a mobilidade no transporte', className="body-do-painel-texto"),
+                children='Selecione uma das opções abaixo:', className="body-do-painel-texto"),
+            html.Div(style={"margin-bottom": "20px"}),  # Espaçamento entre os dropdowns
+
+            #Dropdown seleção do ano
             html.Div(
-                children='''
-                Lorem Ipsum é simplesmente um texto fictício da indústria tipográfica e de impressão. Lorem Ipsum tem sido o texto fictício padrão da indústria desde os anos 1500, quando um impressor desconhecido pegou uma galera de tipos e os embaralhou para fazer um livro de espécimes de tipos. Ele sobreviveu não apenas a cinco séculos, mas também ao salto para a composição eletrônica, permanecendo essencialmente inalterado. 
-                ''', className="body-do-painel-texto"),
+                className="painel-lateral",
+                children=[
+                html.Label("Ano"),
+                dcc.Dropdown(
+                    options=[
+                        {"label": "2021", "value": "opcao1"},
+                        {"label": "2022", "value": "opcao2"},
+                    ],
+                    style={'align-items': 'center', 'justify-content': 'center', 'width':'95%'},
+                    searchable=False,
+                    id='demo-dropdown',
+                    placeholder="Selecione o ano",
+                    className='ano-dropdown'
+                ),
+                ],
+            ),
+            html.Div(style={"margin-bottom": "20px"}),  # Espaçamento entre os dropdowns
+
+            #Dropdown seleção do ano
+            html.Div(
+                className="painel-lateral",
+                id='base-dados-dropdown',
+                children=[
+                html.Label("Região"),
+                dcc.Dropdown(
+                    options=[
+                        {"label": "Leste", "value": "LESTE"},
+                        {"label": "Norte", "value": "NORTE"},
+                        {"label": "Sul", "value": "SUL"},
+                        {"label": "Oeste", "value": "OESTE"},
+                    ],
+                    placeholder="Selecione a Regiao",
+                    style={'align-items': 'center', 'justify-content': 'center', 'width':'95%'},
+                    searchable=False,
+                    id='dropdown-regiao',
+                    className='lateral-dropdown'
+                )
+                ],
+            ),
+
         ]
     ),
 
@@ -446,11 +483,7 @@ app.layout = html.Div([
     children=[
         dcc.Graph(
             id='figGraficoBarrasHoriCongestionamentoMes',
-            figure=figGraficoBarrasHoriCongestionamentoMes,
-            style={
-                'borderRadius': '10px',
-                'border': '5px solid #252a48'
-            }        
+            figure=figGraficoBarrasHoriCongestionamentoMes,      
 )
     ]
 ),
@@ -508,9 +541,83 @@ app.layout = html.Div([
     ]
 ),
 
+    html.Div(
+    className="figGraficoLinhaComparacaoRegiaoMes",
+    children=[
+        dcc.Graph(
+            id='figGraficoLinhaComparacaoRegiaoMes',
+            figure=figGraficoLinhaComparacaoRegiaoMes,
+            style={
+                'borderRadius': '10px',
+                'border': '5px solid #252a48'
+            }        
+)
+    ]
+),
+
 
 
 ])
+
+
+
+# Defina a função de callback para atualizar o gráfico quando o valor do dropdown mudar
+@app.callback(
+    Output('figGraficoBarrasHoriCongestionamentoMes', 'figure'),
+    [Input('dropdown-regiao', 'value')]
+)
+
+def update_graph(region):
+    filtered_data = df_grouped[df_grouped['Regiao'] == region]
+    
+    figGraficoBarrasHoriCongestionamentoMes = go.Figure(data=[
+        go.Bar(name=region, y=filtered_data['Mes'], x=filtered_data['Tamanho'], orientation='h'),
+    ])
+    
+    figGraficoBarrasHoriCongestionamentoMes.update_layout(
+            title=f'Tamanho por Região - {region}',
+            xaxis_title='Congestionamento (em metros)',
+            yaxis_title='Mês',
+            plot_bgcolor='rgba(0, 0, 0, 0)',  # Define a cor de fundo do gráfico como transparente
+            paper_bgcolor='#252a48',  # Define a cor de fundo do papel como '#252a48',
+
+            legend=dict(
+                x=1.02,
+                y=0.98,
+                bgcolor='rgba(255, 255, 255, 0.1)',
+                bordercolor='#252a48',
+                borderwidth=2,
+                font=dict(
+                    color='#fff' # Define a cor do texto da legenda como branco
+                    )
+                ),
+                title_font=dict(
+                    color='#fff'  # Define a cor do título do gráfico como branco
+               ),
+                xaxis=dict(
+                    tickfont=dict(
+                    color='#fff'  # Define a cor dos números e meses no eixo X como branco
+                    ),
+                    title_font=dict(
+                        color='#fff'  # Define a cor do título do eixo X como branco
+                    )
+                ),
+                yaxis=dict(
+                    tickfont=dict(
+                        color='#fff'  # Define a cor dos números no eixo Y como branco
+                    ),
+                    title_font=dict(
+                        color='#fff'  # Define a cor do título do eixo Y como branco
+                    )
+                )
+    )
+    
+    return figGraficoBarrasHoriCongestionamentoMes
+
+
+
+
+
 
 # Colocar no ar
 if __name__ == '__main__':
