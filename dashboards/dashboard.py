@@ -440,7 +440,7 @@ app.layout = html.Div([
     ]
 ),
     html.Div(
-    className="figIndicadorMesMaiorMediaCongestionamento",
+    className='figIndicadorMesMaiorMediaCongestionamento',
     children=[
         dcc.Graph(
             id='figIndicadorMesMaiorMediaCongestionamento',
@@ -742,7 +742,7 @@ def update_indicador_mes(region):
             font=dict(color='#fff'),  # Define a cor do texto do gráfico como branco
             height=160,
             width=239,
-            )
+        )
     else:
         #AgrupandoMes MAior Media de Congestionamento
         df_grouped_mes = round(df_2022.groupby(['Dia da Semana', 'Regiao', 'Mes'], sort=False)['Tamanho'].mean(),2)
