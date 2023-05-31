@@ -11,7 +11,7 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 # definindo aplicativo do flask
 app = Dash(__name__, title='Tráfego Urbano')                         
 
-df_2022 = pd.read_csv("/Users/danieladomingues/Documents/dash_PI/dashboards/assets/bd_transito_2022.csv", sep=",")
+df_2022 = pd.read_csv("./assets/bd_transito_2022.csv", sep=",")
 
 #Criar variaveis dia da semana para organizar Data Frame
 dias_semana_ordem = ['segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado', 'domingo']
@@ -430,7 +430,7 @@ app.layout = html.Div([
     className="figIndicadorDiaComMaiorMediaCongestionamento",
     children=[
         dcc.Graph(
-            id='IndicadorDiaComMaiorMediaCongestionamento',
+            id='figIndicadorDiaComMaiorMediaCongestionamento',
             figure=figIndicadorDiaComMaiorMediaCongestionamento,
             style={
                 'borderRadius': '10px',
@@ -612,6 +612,7 @@ def update_indicador_via(regiao):
 
 
     if regiao == 'Todas as regioes':
+
         figIndicadorViaComMaoirMediaCongestionamento = go.Figure()
         figIndicadorViaComMaoirMediaCongestionamento.add_trace(go.Indicator(
             mode='number+delta',
@@ -630,7 +631,6 @@ def update_indicador_via(regiao):
             width=239,
             # ... outras configurações de layout ...
         )
-
     else:
         df_grouped_local1 = round(df_2022.groupby(['Regiao','Local'], sort=False)['Tamanho'].mean())
         df_grouped_local1.sort_values(ascending=False, inplace=True)
@@ -661,6 +661,114 @@ def update_indicador_via(regiao):
         ))
 
         return figIndicadorViaComMaoirMediaCongestionamento
+    
+@app.callback(
+    Output('figIndicadorDiaComMaiorMediaCongestionamento', 'figure'),
+    [Input('dropdown-regiao', 'value')]
+)
+
+def update_indicador_dia_semana(region):
+
+        if region == 'Todas as regioes':
+            df_grouped_dia_semana = round(df_2022.groupby(['Dia da Semana'], sort=False)['Tamanho'].mean(),2)
+            df_grouped_dia_semana.sort_values(ascending=False, inplace=True)
+            df_grouped_dia_semana = df_grouped_dia_semana.reset_index()
+            df_grouped_dia_semana.head()
+            figIndicadorDiaComMaiorMediaCongestionamento = go.Figure()
+            figIndicadorDiaComMaiorMediaCongestionamento.add_trace(go.Indicator(mode='number+delta',
+                                        title = {"text": f"<span style='font-size:350%; color:#fff; text-align:center;'>{df_grouped_dia_semana['Dia da Semana'].iloc[0]}</span><br><br><br><span style='font-size:175%; color:#fff; text-align:center;'> Dia com maior média de congestionamento</span>"},
+                                        value = round(df_grouped_dia_semana['Tamanho'].iloc[0],0),
+                                        number = {"suffix": " metros"},
+                                        delta = {'relative': True, 'valueformat': '.1%', 'reference': df_grouped_dia_semana['Tamanho'].mean()},
+                                        number_font={"size": 23, "color": "#fff"}  # Ajuste o tamanho e a cor do número do indicador aqui
+                                        )
+            )
+            figIndicadorDiaComMaiorMediaCongestionamento.update_layout(
+                paper_bgcolor='#252a48',  # Define a cor de fundo do papel como '#252a48'
+                font=dict(color='#fff'),  # Define a cor do texto do gráfico como branco
+                height=160,
+                width=239,
+            )
+
+        else:
+            #Agrupando por dia da semana e Regiao
+            df_grouped_dia_semana = round(df_2022.groupby(['Dia da Semana', 'Regiao'], sort=False)['Tamanho'].mean(),2)
+            df_grouped_dia_semana.sort_values(ascending=False, inplace=True)
+            df_grouped_dia_semana = df_grouped_dia_semana.reset_index()
+            df_grouped_dia_semana = df_grouped_dia_semana[df_grouped_dia_semana['Regiao'] == region]
+            df_grouped_dia_semana.head()
+
+            figIndicadorDiaComMaiorMediaCongestionamento = go.Figure()
+            figIndicadorDiaComMaiorMediaCongestionamento.add_trace(go.Indicator(mode='number+delta',
+                                        title = {"text": f"<span style='font-size:350%; color:#fff; text-align:center;'>{df_grouped_dia_semana['Dia da Semana'].iloc[0]}</span><br><br><br><span style='font-size:175%; color:#fff; text-align:center;'> Dia com maior média de congestionamento - {region}</span>"},
+                                        value = round(df_grouped_dia_semana['Tamanho'].iloc[0],0),
+                                        number = {"suffix": " metros"},
+                                        delta = {'relative': True, 'valueformat': '.1%', 'reference': df_grouped_dia_semana['Tamanho'].mean()},
+                                        number_font={"size": 20, "color": "#fff"},  # Ajuste o tamanho e a cor do número do indicador aqui
+                                        title_font={"size": 4.3}  # Ajuste o tamanho da fonte do título aqui
+                                        )
+            )
+            figIndicadorDiaComMaiorMediaCongestionamento.update_layout(
+                paper_bgcolor='#252a48',  # Define a cor de fundo do papel como '#252a48'
+                font=dict(color='#fff'),  # Define a cor do texto do gráfico como branco
+                height=160,
+                width=239,
+            )
+        return figIndicadorDiaComMaiorMediaCongestionamento
+
+@app.callback(
+    Output('figIndicadorMesMaiorMediaCongestionamento', 'figure'),
+    [Input('dropdown-regiao', 'value')]
+)
+
+def update_indicador_mes(region):
+    if region == 'Todas as regioes':
+        #AgrupandoMes MAior Media de Congestionamento
+        df_grouped_mes = round(df_2022.groupby(['Dia da Semana', 'Regiao', 'Mes'], sort=False)['Tamanho'].mean(),2)
+        df_grouped_mes.sort_values(ascending=False, inplace=True)
+        df_grouped_mes = df_grouped_mes.reset_index()
+        df_grouped_mes.head()
+        figIndicadorMesMaiorMediaCongestionamento = go.Figure()
+        figIndicadorMesMaiorMediaCongestionamento .add_trace(go.Indicator(mode='number+delta',
+                                    title = {"text": f"<span style='font-size:350%; color:#fff; text-align:center;'>{df_grouped_mes['Mes'].iloc[0]}</span><br><br><br><span style='font-size:175%; color:#fff; text-align:center;'>Mês com maior média de congestionamento</span>"},
+                                    value = round(df_grouped_mes['Tamanho'].iloc[0],0),
+                                    number = {"suffix": " metros"},
+                                    delta = {'relative': True, 'valueformat': '.1%', 'reference': df_grouped_mes['Tamanho'].mean()},
+                                    number_font={"size": 23, "color": "#fff"}  # Ajuste o tamanho e a cor do número do indicador aqui
+                                    )
+        )
+        figIndicadorMesMaiorMediaCongestionamento .update_layout(
+            paper_bgcolor='#252a48',  # Define a cor de fundo do papel como '#252a48'
+            font=dict(color='#fff'),  # Define a cor do texto do gráfico como branco
+            height=160,
+            width=239,
+            )
+    else:
+        #AgrupandoMes MAior Media de Congestionamento
+        df_grouped_mes = round(df_2022.groupby(['Dia da Semana', 'Regiao', 'Mes'], sort=False)['Tamanho'].mean(),2)
+        df_grouped_mes.sort_values(ascending=False, inplace=True)
+        df_grouped_mes = df_grouped_mes.reset_index()
+        df_grouped_mes = df_grouped_mes[df_grouped_mes['Regiao'] == region]
+        df_grouped_mes.head()
+        figIndicadorMesMaiorMediaCongestionamento = go.Figure()
+        figIndicadorMesMaiorMediaCongestionamento .add_trace(go.Indicator(mode='number+delta',
+                                    title = {"text": f"<span style='font-size:350%; color:#fff; text-align:center;'>{df_grouped_mes['Mes'].iloc[0]}</span><br><br><br><span style='font-size:175%; color:#fff; text-align:center;'>Mês com maior média de congestionamento - {region}</span>"},
+                                    value = round(df_grouped_mes['Tamanho'].iloc[0],0),
+                                    number = {"suffix": " metros"},
+                                    delta = {'relative': True, 'valueformat': '.1%', 'reference': df_grouped_mes['Tamanho'].mean()},
+                                    number_font={"size": 20, "color": "#fff"},  # Ajuste o tamanho e a cor do número do indicador aqui
+                                    title_font={"size": 4.3}  # Ajuste o tamanho da fonte do título aqui
+                                    )
+        )
+        figIndicadorMesMaiorMediaCongestionamento .update_layout(
+            paper_bgcolor='#252a48',  # Define a cor de fundo do papel como '#252a48'
+            font=dict(color='#fff'),  # Define a cor do texto do gráfico como branco
+            height=160,
+            width=239,
+        )
+        return figIndicadorMesMaiorMediaCongestionamento
+
+
 
 
 # Colocar no ar
